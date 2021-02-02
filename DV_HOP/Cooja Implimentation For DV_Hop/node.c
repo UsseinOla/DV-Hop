@@ -12,7 +12,7 @@
 #include "dev/cc2420_const.h"
 /****************************/
 #include <stdlib.h>
-#include <string.h> //for free() functions
+#include <string.h> 
 /****************************/
 #define anchors_num 3
 #define MAX_NEIGHBORS 16
