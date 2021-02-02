@@ -10,10 +10,9 @@
 #include <math.h>
 #include "dev/cc2420.h"
 #include "dev/cc2420_const.h"
-/****************************/
 #include <stdlib.h>
 #include <string.h> 
-/****************************/
+
 #define anchors_num 3
 #define MAX_NEIGHBORS 16
 char buffer[80];
