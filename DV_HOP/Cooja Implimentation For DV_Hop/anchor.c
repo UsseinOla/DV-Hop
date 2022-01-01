@@ -11,18 +11,22 @@
 #include "dev/cc2420.h"
 #include "dev/cc2420_const.h"
 
-
 #define anchors_num 3
 #define MAX_NEIGHBORS 16
+
+int ids_counter=0;
+
 /* This structure holds information about neighbors. */
-struct neighbor {
+struct neighbor
+{
 struct neighbor *next;
 rimeaddr_t addr;
 };
 rimeaddr_t next_hop; uint8_t nbr_hop;
 
 /* This structure holds information about database. */
-struct database {
+struct database
+{
 uint8_t type;
 uint8_t  id;
 float  x;
@@ -36,8 +40,8 @@ struct database *received_data_mote;
 struct database routing_table[anchors_num-1];
 int counter=0;
 
-
-struct average_hop_size {
+struct average_hop_size
+{
 uint8_t type;
 uint8_t  id;
 float Av_Hop_Size;
@@ -48,18 +52,16 @@ struct average_hop_size *received_avh_data;
 uint8_t advance_routing_table[anchors_num-1];
 int counter_advance=0;
 
-struct exploit {
+struct exploit 
+{
 uint8_t id;
 float x;
 float y;
 } exploit;
 struct exploit *received_exploit;
-
-int ids_counter=0;
-
-
 static struct broadcast_conn broadcast;
 static struct unicast_conn unicast;
+
 /*---------------------------------------------------------------------------*/
 /* We first declare our processes. */
 PROCESS(broadcast_process, "Broadcast process");
@@ -72,6 +74,7 @@ PROCESS(av_hopsize_process, "Average HopSize process");
    start when this module is loaded. We put both our processes
    there. */
 AUTOSTART_PROCESSES(&broadcast_process, &unicast_process);
+
 /*---------------------------------------------------------------------------*/
 /* This function is called whenever a broadcast message is received. */
 static void broadcast_recv(struct broadcast_conn *c, const rimeaddr_t *from)
@@ -81,37 +84,48 @@ process_start(&blink_process, NULL);
 /*  Registration of database information in the databases table */
 if(received_data_mote->type==0){ 
 int i=0; 
-for(i=0;i<counter;i++){
-if ((received_data_mote->id==routing_table[i].id) &&(received_data_mote->id!=0)){
-if(received_data_mote->hop_count <routing_table[i].hop_count){
+for(i=0;i<counter;i++)
+{
+if ((received_data_mote->id==routing_table[i].id) &&(received_data_mote->id!=0))
+{
+if(received_data_mote->hop_count <routing_table[i].hop_count)
+{
 routing_table[i].hop_count=received_data_mote->hop_count; 
-if(received_data_mote->id==1){
+if(received_data_mote->id==1)
+{
 rimeaddr_copy(&next_hop, from);
 nbr_hop=received_data_mote->hop_count;
 }  
 process_start(&flooding_process, NULL);           
 }
-else{
+else
+{
 break;	 
 }   
 break;              
 }
 } 
-if((i==counter)&&(received_data_mote->id!=node_id)&&(received_data_mote->id!=0)){
+if((i==counter)&&(received_data_mote->id!=node_id)&&(received_data_mote->id!=0))
+{
 routing_table[counter]=*received_data_mote;counter++; ids_counter++;
-if(received_data_mote->id==1){
+if(received_data_mote->id==1)
+{
 rimeaddr_copy(&next_hop, from);
 nbr_hop=received_data_mote->hop_count;
 } 
 process_start(&flooding_process, NULL);i=0;     
 }
 }
+   
 /*************************************************************/
- else if(received_data_mote->type==1){
+ else if(received_data_mote->type==1)
+ {
  received_avh_data=packetbuf_dataptr();
  int i=0; 
- for(i=0;i<counter;i++){
- if ((received_avh_data->id==routing_table[i].id)){
+ for(i=0;i<counter;i++)
+ {
+ if ((received_avh_data->id==routing_table[i].id))
+ {
  routing_table[i].Av_Hop_Size=received_avh_data->Av_Hop_Size;        
  process_start(&flooding_process, NULL);		   
  break;              
@@ -119,25 +133,27 @@ process_start(&flooding_process, NULL);i=0;
 } 
 }
 }
-/**************************************************************************************************/
+ 
 /*---------------------------------------------------------------------------*/
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv};
 static void recv_uc(struct unicast_conn *c, const rimeaddr_t *from)
-{
-   
+{   
 received_exploit= packetbuf_dataptr();
-if(node_id==1){
+   
+if(node_id==1)
+{
 int dec_x = received_exploit->x; float frac_x = received_exploit->x - dec_x;  
 int dec_y = received_exploit->y; float frac_y = received_exploit->y - dec_y;
 printf("Node %u: x=%d.%02d, y=%d.%02d\n",received_exploit->id,dec_x,abs((int)(frac_x*100)),dec_y,abs((int)(frac_y*100)));
 }
- else{
+ else
+{
 packetbuf_copyfrom(received_exploit, sizeof(struct exploit));
 unicast_send(&unicast, &next_hop);
 }
 }
 static const struct unicast_callbacks unicast_callbacks = {recv_uc};
-/*---------------------------------------------------------------------------*/
+ 
 /*--------------------------unicast_process-----------------------------------------------*/
 PROCESS_THREAD(unicast_process, ev, data)
 {
@@ -146,6 +162,7 @@ PROCESS_BEGIN();
 unicast_open(&unicast, 146, &unicast_callbacks);
 PROCESS_END();
 }
+
 /*---------------------------------broadcast_process------------------------------------------*/
 PROCESS_THREAD(broadcast_process, ev, data)
 {
@@ -163,7 +180,8 @@ case 2: currently_information.x =7; currently_information.y =6;break;
 case 3: currently_information.x =9; currently_information.y =3;break;
 }
 
-if (node_id==1){
+if (node_id==1)
+{
 leds_on(LEDS_YELLOW);
 etimer_set(&et1, (CLOCK_SECOND)+random_rand() % (CLOCK_SECOND));
 PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et1));
@@ -173,7 +191,8 @@ broadcast_send(&broadcast);
 leds_off(LEDS_YELLOW);
 PROCESS_EXIT();
 }
-else if (node_id==2){
+else if (node_id==2)
+{
 PROCESS_WAIT_EVENT_UNTIL(received_data_mote->id==1);
 leds_on(LEDS_YELLOW);
 etimer_set(&et1, (CLOCK_SECOND)+random_rand() % (CLOCK_SECOND));
@@ -184,7 +203,8 @@ broadcast_send(&broadcast);
 leds_off(LEDS_YELLOW);
 PROCESS_EXIT();
 }
-else if (node_id==3){
+else if (node_id==3)
+{
 PROCESS_WAIT_EVENT_UNTIL(received_data_mote->id==2);
 leds_on(LEDS_YELLOW);
 etimer_set(&et1, (CLOCK_SECOND)+random_rand() % (CLOCK_SECOND));
@@ -197,6 +217,7 @@ PROCESS_EXIT();
 }
 PROCESS_END();
 }
+
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(flooding_process, ev, data)
 {
@@ -204,15 +225,18 @@ static struct etimer et1;
 PROCESS_EXITHANDLER(broadcast_close(&broadcast);)
 PROCESS_BEGIN();
 broadcast_open(&broadcast, 129, &broadcast_call);
+   
  /**********************************FLOODING_TYPE=ZERO********************************************/
-if (received_data_mote->type==0){
+if (received_data_mote->type==0)
+{
 etimer_set(&et1, (CLOCK_SECOND)+random_rand() % (CLOCK_SECOND));
 PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et1));
 received_data_mote->hop_count++;
 packetbuf_copyfrom(*(&received_data_mote), sizeof(struct database));
 broadcast_send(&broadcast);
 
-if((ids_counter == anchors_num-1)){
+if((ids_counter == anchors_num-1))
+{
 etimer_set(&et1, (CLOCK_SECOND)+random_rand() % (CLOCK_SECOND));
 PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et1));
 process_start(&av_hopsize_process, NULL);
@@ -220,18 +244,18 @@ PROCESS_EXIT();
 printf("there is an error\n");
 }      
 }
+   
 /************************************FLOODUNG_TYPE=ONE******************************************/
-else if(received_data_mote->type==1){
+else if(received_data_mote->type==1)
+{
 etimer_set(&et1, (CLOCK_SECOND)+random_rand() % (CLOCK_SECOND));
 PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et1));
 packetbuf_copyfrom(*(&received_avh_data), sizeof(struct average_hop_size));
 broadcast_send(&broadcast);
 }
- /************************************************************************************/
-
+   
 PROCESS_END();
 }
-
 
 /*---------------------------------------------------------------------------*/
  PROCESS_THREAD(blink_process, ev, data)
@@ -245,7 +269,6 @@ PROCESS_END();
  PROCESS_END();
  }
 
-
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(av_hopsize_process, ev, data)
 {
@@ -255,46 +278,53 @@ PROCESS_BEGIN();
 PROCESS_WAIT_EVENT_UNTIL(node_id==1 || received_data_mote->id==1);
 broadcast_open(&broadcast, 129, &broadcast_call);
 
-if (node_id==1){
+if (node_id==1)
+{
 leds_on(LEDS_YELLOW);
 etimer_set(&et1, (CLOCK_SECOND)+random_rand() % (CLOCK_SECOND));
 PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et1));
 printf("anchor %u start average_hop_size \n",node_id);
+   
 /*********************************************************************/
 int dec_x; float frac_x;
 currently_average_hop_size.type=1;
 currently_average_hop_size.id=node_id;
 float numenator=0, denominator=0, sum_numenator=0, sum_denominator=0, sum_hopsize=0;
 int j=0;
-for(j=0;j<counter;j++){
+for(j=0;j<counter;j++)
+{
 numenator=sqrt(pow(currently_information.x-routing_table[j].x,2)+pow(currently_information.y-routing_table[j].y,2));
 denominator=routing_table[j].hop_count;    
 sum_numenator+=numenator;
 sum_denominator+=denominator;  
 }
+   
 sum_hopsize=(float)sum_numenator/(float)sum_denominator;
 currently_average_hop_size.Av_Hop_Size=(float)sum_hopsize;
+   
 /*************************************************************************************/
-
 packetbuf_copyfrom(&currently_average_hop_size, sizeof(struct average_hop_size));
 broadcast_send(&broadcast);
 leds_off(LEDS_YELLOW);
 PROCESS_EXIT();
 }
 
-  else if (node_id==2){
+else if (node_id==2)
+{
 PROCESS_WAIT_EVENT_UNTIL(received_avh_data->id==1);
 leds_on(LEDS_YELLOW);
 etimer_set(&et1, (CLOCK_SECOND)*2+random_rand() % (CLOCK_SECOND));
 PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et1));
 printf("anchor %u start average_hop_size \n",node_id);
+   
 /*********************************************************************/
 int dec_x; float frac_x;
 currently_average_hop_size.type=1;
 currently_average_hop_size.id=node_id;
 float numenator=0, denominator=0, sum_numenator=0, sum_denominator=0, sum_hopsize=0;
 int j=0;
-for(j=0;j<counter;j++){
+for(j=0;j<counter;j++)
+{
 numenator=sqrt(pow(currently_information.x-routing_table[j].x,2)+pow(currently_information.y-routing_table[j].y,2));
 denominator=routing_table[j].hop_count;    
 sum_numenator+=numenator;
@@ -302,25 +332,29 @@ sum_denominator+=denominator;
 }
 sum_hopsize=(float)sum_numenator/(float)sum_denominator;
 currently_average_hop_size.Av_Hop_Size=(float)sum_hopsize;
+   
 /*************************************************************************************/
 packetbuf_copyfrom(&currently_average_hop_size, sizeof(struct average_hop_size));
 broadcast_send(&broadcast);
 leds_off(LEDS_YELLOW);
 PROCESS_EXIT();
 }
- else if (node_id==3){
+ else if (node_id==3)
+ {
 PROCESS_WAIT_EVENT_UNTIL(received_avh_data->id==2);
 leds_on(LEDS_YELLOW);
 etimer_set(&et1, (CLOCK_SECOND)*2+random_rand() % (CLOCK_SECOND));
 PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et1));
 printf("anchor %u start average_hop_size \n",node_id);
 /*********************************************************************/
+    
 int dec_x; float frac_x;
 currently_average_hop_size.type=1;
 currently_average_hop_size.id=node_id;
 float numenator=0, denominator=0, sum_numenator=0, sum_denominator=0, sum_hopsize=0;
 int j=0;
-for(j=0;j<counter;j++){
+for(j=0;j<counter;j++)
+{
 numenator=sqrt(pow(currently_information.x-routing_table[j].x,2)+pow(currently_information.y-routing_table[j].y,2));
 denominator=routing_table[j].hop_count;    
 sum_numenator+=numenator;
@@ -335,17 +369,19 @@ broadcast_send(&broadcast);
 leds_off(LEDS_YELLOW);
 PROCESS_EXIT();
 }
+   
 PROCESS_END();
 }
+
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(display_process, ev, data)
 { 
 PROCESS_BEGIN(); 
 int j=0;
-for(j=0;j<counter;j++) {
+for(j=0;j<counter;j++)
+{
 printf("mote=%u,Nbr_hop=%u/",routing_table[j].id,routing_table[j].hop_count);
 }
 printf("\n");
 PROCESS_END();
 }
-/*---------------------------------------------------------------------------*/
